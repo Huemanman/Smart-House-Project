@@ -5,6 +5,11 @@
 RTC_PCF8523 rtc;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
+// SD
+#include <SPI.h>
+#include <SD.h>
+#include "FS.h"
+
 // EINK
 #include "Adafruit_ThinkInk.h"
 
@@ -17,11 +22,20 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 // 2.13" Monochrome displays with 250x122 pixels and SSD1675 chipset
 ThinkInk_213_Mono_B72 display(EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 
+// motor shield
+#include <Adafruit_MotorShield.h>
+
+Adafruit_MotorShield AFMS = Adafruit_MotorShield();
+Adafruit_DCMotor *myMotor = AFMS.getMotor(4);
+
 void setup() {
   Serial.begin(9600);
   while (!Serial) {
     delay(10);
   }
+
+  // SD Card
+  setupSD();
 
   // RTC
   if (! rtc.begin()) {
@@ -95,4 +109,18 @@ String getDateTimeAsString() {
   sprintf(humanReadableDate, "%02d:%02d:%02d %02d/%02d/%02d",  now.hour(), now.minute(), now.second(), now.day(), now.month(), now.year());
 
   return humanReadableDate;
+}
+
+void setupSD() {
+  if (!SD.begin()) {
+    Serial.println("Card Mount Failed");
+    return;
+  }
+  uint8_t cardType = SD.cardType();
+
+  if (cardType == CARD_NONE) {
+    Serial.println("No SD card attached");
+    return;
+  }
+  Serial.println("SD Started");
 }
