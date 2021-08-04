@@ -1,8 +1,7 @@
-//Moiture senser
+//Moiture sensor
 
 int moistValue = 0; //value for storing moisture value
 int soilPin = 12;//Declare a variable for the soil moisture sensor
-
 
 // RTC
 #include "RTClib.h"
@@ -185,10 +184,6 @@ void logEvent(String dataToLog) {
   Serial.print(rightNow.second(), DEC);
   Serial.print(",");
   Serial.println(dataToLog);
-
-  //This is a function used to get the soil moisture content
-
-
 }
 
 int readSoil() {
