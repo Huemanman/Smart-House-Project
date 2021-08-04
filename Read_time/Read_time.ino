@@ -3,6 +3,7 @@
 int moistValue = 0; //value for storing moisture value
 int soilPin = 12;//Declare a variable for the soil moisture sensor
 
+
 // RTC
 #include "RTClib.h"
 
@@ -60,6 +61,8 @@ void setup() {
   AFMS.begin();
   myMotor->setSpeed(255);
   logEvent("System Initialisation...");
+
+  readSoil();
 }
 
 void loop() {
@@ -67,15 +70,18 @@ void loop() {
   // Gets the current date and time, and writes it to the Eink display.
   String currentTime = getDateTimeAsString();
 
-  drawText("The Current Time and\nDate is", EPD_BLACK, 2, 0, 0);
+  drawText("The Current Time and\nMoisture Value is", EPD_BLACK, 2, 0, 0);
 
   // writes the current time on the bottom half of the display (y is height)
   drawText(currentTime, EPD_BLACK, 2, 0, 75);
 
   // Draws a line from the leftmost pixel, on line 50, to the rightmost pixel (250) on line 50.
   display.drawLine(0, 50, 250, 50, EPD_BLACK);
-  display.display();
 
+  int moisture = readSoil();
+
+  drawText(String (moisture), EPD_BLACK, 2, 0, 100);
+  display.display();
 
   // waits 180 seconds (3 minutes) as per guidelines from adafruit.
   delay(180000);
@@ -181,9 +187,11 @@ void logEvent(String dataToLog) {
   Serial.println(dataToLog);
 
   //This is a function used to get the soil moisture content
-  int readSoil()
-  {
-    moistValue = analogRead(soilPin);//Read the SIG value form sensor
-    return moistValue;//send current moisture value
-  }
+
+
+}
+
+int readSoil() {
+  moistValue = analogRead(soilPin);//Read the SIG value form sensor
+  return moistValue;//send current moisture value
 }
