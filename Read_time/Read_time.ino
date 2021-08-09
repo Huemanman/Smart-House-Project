@@ -1,22 +1,19 @@
-//Moiture sensor
-
+//Set Variables for Moiture sensor
 int moistValue = 0; //value for storing moisture value
 int soilPin = 12;//Declare a variable for the soil moisture sensor
 
-// RTC
+// Set Variables for RTC
 #include "RTClib.h"
-
 RTC_PCF8523 rtc;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-// SD
+// Find and Inclued Files for SD
 #include <SPI.h>
 #include <SD.h>
 #include "FS.h"
 
-// EINK
+// Set Variables and Find and Inclued Files for EINK
 #include "Adafruit_ThinkInk.h"
-
 #define EPD_CS      15
 #define EPD_DC      33
 #define SRAM_CS     32
@@ -26,22 +23,23 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 // 2.13" Monochrome displays with 250x122 pixels and SSD1675 chipset
 ThinkInk_213_Mono_B72 display(EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 
-// motor shield
+// Set Variables and Find and Inclued Files Motor Shield
 #include <Adafruit_MotorShield.h>
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *myMotor = AFMS.getMotor(4);
 
 void setup() {
+  //Setup Serial Monitor to Monitor the Code Working
   Serial.begin(9600);
   while (!Serial) {
     delay(10);
   }
 
-  // SD Card
+  // Setup SD Card
   setupSD();
 
-  // RTC
+  // Setup RTC
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
     Serial.flush();
@@ -53,14 +51,16 @@ void setup() {
 
   rtc.start();
 
-  //EINK
+  // Setup EINK
   display.begin(THINKINK_MONO);
   display.clearBuffer();
 
+  // Setup Motor
   AFMS.begin();
   myMotor->setSpeed(255);
   logEvent("System Initialisation...");
 
+  // Setup Soil Monitor
   readSoil();
 }
 
@@ -86,7 +86,7 @@ void loop() {
   delay(180000);
   display.clearBuffer();
 }
-
+//State How to Draw the Text on the E-ink Monitor
 void drawText(String text, uint16_t color, int textSize, int x, int y) {
   display.setCursor(x, y);
   display.setTextColor(color);
@@ -95,7 +95,7 @@ void drawText(String text, uint16_t color, int textSize, int x, int y) {
   display.print(text);
 
 }
-
+//State the Time as a String so the E-Ink Monitor can Display it
 String getDateTimeAsString() {
   DateTime now = rtc.now();
 
@@ -124,6 +124,7 @@ String getDateTimeAsString() {
   return humanReadableDate;
 }
 
+//State What the Code Means When it Says "setupSD" in the Above Code
 void setupSD() {
   if (!SD.begin()) {
     Serial.println("Card Mount Failed");
@@ -138,6 +139,7 @@ void setupSD() {
   Serial.println("SD Started");
 }
 
+//Find the Time and Date in the AdaLogger and Display to the Arduino
 void logEvent(String dataToLog) {
   /*
      Log entries to a file on an SD card.
@@ -186,6 +188,7 @@ void logEvent(String dataToLog) {
   Serial.println(dataToLog);
 }
 
+//Find the Moiture in the Soil Via the Soil Moisture Sensor and State to the Arduino
 int readSoil() {
   moistValue = analogRead(soilPin);//Read the SIG value form sensor
   return moistValue;//send current moisture value
