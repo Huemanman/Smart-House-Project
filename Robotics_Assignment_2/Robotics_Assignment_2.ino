@@ -7,10 +7,14 @@ int soilPin = 12;//Declare a variable for the soil moisture sensor
 RTC_PCF8523 rtc;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-// Find and Inclued Files for SD
-#include <SPI.h>
-#include <SD.h>
-#include "FS.h"
+#define FORMAT_SPIFFS_IF_FAILED true
+
+// Wifi & Webserver
+#include "WiFi.h"
+#include "SPIFFS.h"
+#include <ESPAsyncWebServer.h>
+#include "wifiConfig.h"
+AsyncWebServer server(80);
 
 // Set Variables and Find and Inclued Files for EINK
 #include "Adafruit_ThinkInk.h"
@@ -48,6 +52,19 @@ void setup() {
 
   // Setup SD Card
   setupSD();
+
+server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
+    Serial.println("index");
+    request->send(SPIFFS, "/index.html", "text/html");
+  });
+  server.on("/dashboard", HTTP_GET, [](AsyncWebServerRequest * request) {
+    Serial.println("dashboard");
+    request->send(SPIFFS, "/dashboard.html", "text/html");
+  });
+  server.on("/logOutput", HTTP_GET, [](AsyncWebServerRequest * request) {
+    Serial.println("output");
+    request->send(SPIFFS, "/logEvents.csv", "text/html", true);
+  });
 
   // Connect to WiFi network
   WiFi.begin(ssid, password);
@@ -174,72 +191,34 @@ void loop() {
     sprintf(humanReadableDate, "%02d:%02d:%02d %02d/%02d/%02d",  now.hour(), now.minute(), now.second(), now.day(), now.month(), now.year());
 
     return humanReadableDate;
+
+    server.handleClient();
   }
 
-  //State What the Code Means When it Says "setupSD" in the Above Code
-  void setupSD() {
-    if (!SD.begin()) {
-      Serial.println("Card Mount Failed");
-      return;
-    }
-    uint8_t cardType = SD.cardType();
-
-    if (cardType == CARD_NONE) {
-      Serial.println("No SD card attached");
-      return;
-    }
-    Serial.println("SD Started");
-  }
 
   //Find the Time and Date in the AdaLogger and Display to the Arduino
-  void logEvent(String dataToLog) {
-    /*
-       Log entries to a file on an SD card.
-    */
-    // Get the updated/current time
-    DateTime rightNow = rtc.now();
+void logEvent(String dataToLog) {
+  /*
+     Log entries to a file stored in SPIFFS partition on the ESP32.
+  */
+  // Get the updated/current time
+  DateTime rightNow = rtc.now();
+  char csvReadableDate[25];
+  sprintf(csvReadableDate, "%02d,%02d,%02d,%02d,%02d,%02d,",  rightNow.year(), rightNow.month(), rightNow.day(), rightNow.hour(), rightNow.minute(), rightNow.second());
 
-    // Open the log file
-    File logFile = SD.open("/logEvents.csv", FILE_APPEND);
-    if (!logFile) {
-      Serial.print("Couldn't create log file");
-      abort();
-    }
+  String logTemp = csvReadableDate + dataToLog + "\n"; // Add the data to log onto the end of the date/time
 
-    // Log the event with the date, time and data
-    logFile.print(rightNow.year(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.month(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.day(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.hour(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.minute(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.second(), DEC);
-    logFile.print(",");
-    logFile.print(dataToLog);
+  const char * logEntry = logTemp.c_str(); //convert the logtemp to a char * variable
 
-    // End the line with a return character.
-    logFile.println();
-    logFile.close();
-    Serial.print("Event Logged: ");
-    Serial.print(rightNow.year(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.month(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.day(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.hour(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.minute(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.second(), DEC);
-    Serial.print(",");
-    Serial.println(dataToLog);
-  }
+  //Add the log entry to the end of logevents.csv
+  appendFile(SPIFFS, "/logEvents.csv", logEntry);
 
+  // Output the logEvents - FOR DEBUG ONLY. Comment out to avoid spamming the serial monitor.
+  //  readFile(SPIFFS, "/logEvents.csv");
+
+  Serial.print("\nEvent Logged: ");
+  Serial.println(logEntry);
+}
   //Find the Moiture in the Soil Via the Soil Moisture Sensor and State to the Arduino
   int readSoil() {
     moistValue = analogRead(soilPin);//Read the SIG value form sensor
@@ -251,29 +230,69 @@ void loop() {
     //moisture value as an argument, and return no value.
   }
 
-  String readFile(fs::FS & fs, const char * path) {
-    Serial.printf("Reading file: %s\n", path);
-    char c;
-    String tempHTML = "";
+  // SPIFFS file functions
+void readFile(fs::FS &fs, const char * path) {
+  Serial.printf("Reading file: %s\r\n", path);
 
-    File file = fs.open(path);
-    if (!file) {
-      Serial.print("Failed to open file for reading: ");
-      Serial.println(path);
-      return "";
-    }
-
-    while (file.available()) {
-      c = file.read();
-      tempHTML += c;
-    }
-    file.close();
-    return tempHTML;
+  File file = fs.open(path);
+  if (!file || file.isDirectory()) {
+    Serial.println("- failed to open file for reading");
+    return;
   }
 
-
-
-  void loadHTML() {
-    serverIndex = readFile(SD, "/serverIndex.html");
-    loginIndex = readFile(SD, "/loginIndex.html");
+  Serial.println("- read from file:");
+  while (file.available()) {
+    Serial.write(file.read());
   }
+  file.close();
+}
+
+void writeFile(fs::FS &fs, const char * path, const char * message) {
+  Serial.printf("Writing file: %s\r\n", path);
+
+  File file = fs.open(path, FILE_WRITE);
+  if (!file) {
+    Serial.println("- failed to open file for writing");
+    return;
+  }
+  if (file.print(message)) {
+    Serial.println("- file written");
+  } else {
+    Serial.println("- write failed");
+  }
+  file.close();
+}
+
+void appendFile(fs::FS &fs, const char * path, const char * message) {
+  Serial.printf("Appending to file: %s\r\n", path);
+
+  File file = fs.open(path, FILE_APPEND);
+  if (!file) {
+    Serial.println("- failed to open file for appending");
+    return;
+  }
+  if (file.print(message)) {
+    Serial.println("- message appended");
+  } else {
+    Serial.println("- append failed");
+  }
+  file.close();
+}
+
+void renameFile(fs::FS &fs, const char * path1, const char * path2) {
+  Serial.printf("Renaming file %s to %s\r\n", path1, path2);
+  if (fs.rename(path1, path2)) {
+    Serial.println("- file renamed");
+  } else {
+    Serial.println("- rename failed");
+  }
+}
+
+void deleteFile(fs::FS &fs, const char * path) {
+  Serial.printf("Deleting file: %s\r\n", path);
+  if (fs.remove(path)) {
+    Serial.println("- file deleted");
+  } else {
+    Serial.println("- delete failed");
+  }
+}
