@@ -1,11 +1,9 @@
-//Set Variables for Moiture sensor
-int moistValue = 0; //value for storing moisture value
-int soilPin = 12;//Declare a variable for the soil moisture sensor
+// Fixes include:
+// removing duplicated wificonfig import
+// removing old code for SD card and old web code.
+// reorganising the import and configuration section of the sketch
 
-// Set Variables for RTC
-#include "RTClib.h"
-RTC_PCF8523 rtc;
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
 
 #define FORMAT_SPIFFS_IF_FAILED true
 
@@ -16,32 +14,41 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 #include "wifiConfig.h"
 AsyncWebServer server(80);
 
-// Set Variables and Find and Inclued Files for EINK
+// RTC
+#include "RTClib.h"
+
+RTC_PCF8523 rtc;
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
+
+// EINK
 #include "Adafruit_ThinkInk.h"
+
 #define EPD_CS      15
 #define EPD_DC      33
 #define SRAM_CS     32
 #define EPD_RESET   -1 // can set to -1 and share with microcontroller Reset!
 #define EPD_BUSY    -1 // can set to -1 to not use a pin (will wait a fixed delay)
 
-// Wifi
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WebServer.h>
-#include <ESPmDNS.h>
-#include "wifiConfig.h"
-
-String loginIndex, serverIndex;
-WebServer server(80);
-
 // 2.13" Monochrome displays with 250x122 pixels and SSD1675 chipset
 ThinkInk_213_Mono_B72 display(EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 
-// Set Variables and Find and Inclued Files Motor Shield
+// Motor Shield
 #include <Adafruit_MotorShield.h>
-
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *myMotor = AFMS.getMotor(4);
+boolean pumpIsRunning = false;
+
+// Soil Moisture
+int moistValue = 0; //value for storing moisture value
+int soilPin = A2;//Declare a variable for the soil moisture sensor
+
+//Temperature Sensor
+#include <Wire.h>
+#include "Adafruit_ADT7410.h"
+// Create the ADT7410 temperature sensor object
+Adafruit_ADT7410 tempsensor = Adafruit_ADT7410();
+
 
 void setup() {
   //Setup Serial Monitor to Monitor the Code Working
@@ -50,8 +57,23 @@ void setup() {
     delay(10);
   }
 
-  // Setup SD Card
-  setupSD();
+  // Connect to WiFi network
+  WiFi.begin(ssid, password);
+  Serial.println("");
+
+
+
+
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
     Serial.println("index");
@@ -65,22 +87,6 @@ void setup() {
     Serial.println("output");
     request->send(SPIFFS, "/logEvents.csv", "text/html", true);
   });
-
-  // Connect to WiFi network
-  WiFi.begin(ssid, password);
-  Serial.println("");
-
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println();
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  loadHTML();
 
   // Setup RTC
   if (! rtc.begin()) {
@@ -105,7 +111,6 @@ void setup() {
 
   // Setup Soil Monitor
   readSoil();
-
 }
 
 void loop() {
@@ -168,7 +173,6 @@ String getDateTimeAsString() {
 
   return humanReadableDate;
 
-  server.handleClient();
 }
 
 
