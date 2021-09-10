@@ -13,7 +13,6 @@ AsyncWebServer server(80);
 RTC_PCF8523 rtc;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-
 // EINK
 #include "Adafruit_ThinkInk.h"
 
