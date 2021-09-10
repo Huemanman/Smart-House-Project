@@ -53,7 +53,7 @@ void setup() {
   // Setup SD Card
   setupSD();
 
-server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
     Serial.println("index");
     request->send(SPIFFS, "/index.html", "text/html");
   });
@@ -106,30 +106,6 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
   // Setup Soil Monitor
   readSoil();
 
-
-  // Webserver
-  /*use mdns for host name resolution*/
-  if (!MDNS.begin(host)) { //http://esp32.local
-    Serial.println("Error setting up MDNS responder!");
-    while (1) {
-      delay(1000);
-    }
-  }
-  Serial.println("mDNS responder started");
-  /*return index page which is stored in serverIndex */
-
-  server.on("/", HTTP_GET, []() {
-    Serial.println("Index");
-    server.sendHeader("Connection", "close");
-    server.send(200, "text/html", loginIndex);
-  });
-  server.on("/serverIndex", HTTP_GET, []() {
-    Serial.println("serverIndex");
-    server.sendHeader("Connection", "close");
-    server.send(200, "text/html", serverIndex);
-  });
-  server.begin();
-}
 }
 
 void loop() {
@@ -154,49 +130,49 @@ void loop() {
   // waits 180 seconds (3 minutes) as per guidelines from adafruit.
   delay(180000);
   display.clearBuffer();
+}
+//State How to Draw the Text on the E-ink Monitor
+void drawText(String text, uint16_t color, int textSize, int x, int y) {
+  display.setCursor(x, y);
+  display.setTextColor(color);
+  display.setTextSize(textSize);
+  display.setTextWrap(true);
+  display.print(text);
 
-  //State How to Draw the Text on the E-ink Monitor
-  void drawText(String text, uint16_t color, int textSize, int x, int y) {
-    display.setCursor(x, y);
-    display.setTextColor(color);
-    display.setTextSize(textSize);
-    display.setTextWrap(true);
-    display.print(text);
+}
+//State the Time as a String so the E-Ink Monitor can Display it
+String getDateTimeAsString() {
+  DateTime now = rtc.now();
 
-  }
-  //State the Time as a String so the E-Ink Monitor can Display it
-  String getDateTimeAsString() {
-    DateTime now = rtc.now();
+  //Prints the date and time to the Serial monitor for debugging.
+  /*
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(" (");
+    Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
+    Serial.print(") ");
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+    Serial.println();
+  */
 
-    //Prints the date and time to the Serial monitor for debugging.
-    /*
-      Serial.print(now.year(), DEC);
-      Serial.print('/');
-      Serial.print(now.month(), DEC);
-      Serial.print('/');
-      Serial.print(now.day(), DEC);
-      Serial.print(" (");
-      Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
-      Serial.print(") ");
-      Serial.print(now.hour(), DEC);
-      Serial.print(':');
-      Serial.print(now.minute(), DEC);
-      Serial.print(':');
-      Serial.print(now.second(), DEC);
-      Serial.println();
-    */
+  // Converts the date and time into a human-readable format.
+  char humanReadableDate[20];
+  sprintf(humanReadableDate, "%02d:%02d:%02d %02d/%02d/%02d",  now.hour(), now.minute(), now.second(), now.day(), now.month(), now.year());
 
-    // Converts the date and time into a human-readable format.
-    char humanReadableDate[20];
-    sprintf(humanReadableDate, "%02d:%02d:%02d %02d/%02d/%02d",  now.hour(), now.minute(), now.second(), now.day(), now.month(), now.year());
+  return humanReadableDate;
 
-    return humanReadableDate;
-
-    server.handleClient();
-  }
+  server.handleClient();
+}
 
 
-  //Find the Time and Date in the AdaLogger and Display to the Arduino
+//Find the Time and Date in the AdaLogger and Display to the Arduino
 void logEvent(String dataToLog) {
   /*
      Log entries to a file stored in SPIFFS partition on the ESP32.
@@ -219,19 +195,19 @@ void logEvent(String dataToLog) {
   Serial.print("\nEvent Logged: ");
   Serial.println(logEntry);
 }
-  //Find the Moiture in the Soil Via the Soil Moisture Sensor and State to the Arduino
-  int readSoil() {
-    moistValue = analogRead(soilPin);//Read the SIG value form sensor
-    return moistValue;//send current moisture value
-  }
+//Find the Moiture in the Soil Via the Soil Moisture Sensor and State to the Arduino
+int readSoil() {
+  moistValue = analogRead(soilPin);//Read the SIG value form sensor
+  return moistValue;//send current moisture value
+}
 
-  void waterPlant(int moistureValue) {
-    //The function is to be called waterPlant() which will take the
-    //moisture value as an argument, and return no value.
-  }
+void waterPlant(int moistureValue) {
+  //The function is to be called waterPlant() which will take the
+  //moisture value as an argument, and return no value.
+}
 
-  // SPIFFS file functions
-void readFile(fs::FS &fs, const char * path) {
+// SPIFFS file functions
+void readFile(fs::FS & fs, const char * path) {
   Serial.printf("Reading file: %s\r\n", path);
 
   File file = fs.open(path);
@@ -247,7 +223,7 @@ void readFile(fs::FS &fs, const char * path) {
   file.close();
 }
 
-void writeFile(fs::FS &fs, const char * path, const char * message) {
+void writeFile(fs::FS & fs, const char * path, const char * message) {
   Serial.printf("Writing file: %s\r\n", path);
 
   File file = fs.open(path, FILE_WRITE);
@@ -263,7 +239,7 @@ void writeFile(fs::FS &fs, const char * path, const char * message) {
   file.close();
 }
 
-void appendFile(fs::FS &fs, const char * path, const char * message) {
+void appendFile(fs::FS & fs, const char * path, const char * message) {
   Serial.printf("Appending to file: %s\r\n", path);
 
   File file = fs.open(path, FILE_APPEND);
@@ -279,7 +255,7 @@ void appendFile(fs::FS &fs, const char * path, const char * message) {
   file.close();
 }
 
-void renameFile(fs::FS &fs, const char * path1, const char * path2) {
+void renameFile(fs::FS & fs, const char * path1, const char * path2) {
   Serial.printf("Renaming file %s to %s\r\n", path1, path2);
   if (fs.rename(path1, path2)) {
     Serial.println("- file renamed");
@@ -288,7 +264,7 @@ void renameFile(fs::FS &fs, const char * path1, const char * path2) {
   }
 }
 
-void deleteFile(fs::FS &fs, const char * path) {
+void deleteFile(fs::FS & fs, const char * path) {
   Serial.printf("Deleting file: %s\r\n", path);
   if (fs.remove(path)) {
     Serial.println("- file deleted");
