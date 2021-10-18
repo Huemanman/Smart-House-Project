@@ -114,7 +114,7 @@ server.on("/LEDOff", HTTP_GET, [](AsyncWebServerRequest * request) {
   }
 
   // The following line can be uncommented if the time needs to be reset.
-  //  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
   rtc.start();
 
@@ -141,9 +141,10 @@ void loop() {
 
 void updateEPD() {
   // Config
-  drawText(WiFi.localIP().toString(), EPD_BLACK, 2, 0, 0);
-  drawText(getTimeAsString(), EPD_BLACK, 1, 200, 0);
-  drawText(getDateAsString(), EPD_BLACK, 1, 190, 10);
+  drawText(WiFi.localIP().toString(), EPD_BLACK, 2, 140, 0);
+  drawText(getTimeAsString(), EPD_BLACK, 2, 0, 25);
+  drawText(getDateAsString(), EPD_BLACK, 2, 0, 45);
+  drawText("Warlpiri", EPD_BLACK, 2, 0, 0);
 
 
   // Draw lines to divvy up the EPD
@@ -151,18 +152,18 @@ void updateEPD() {
   display.drawLine(125, 20, 125, 122, EPD_BLACK);
   display.drawLine(0, 75, 250, 75, EPD_BLACK);
 
-  drawText("Moisture", EPD_BLACK, 2, 0, 25);
-  drawText(String(moistureValue), EPD_BLACK, 4, 0, 45);
+  drawText("Moisture", EPD_BLACK, 2, 0, 80);
+  drawText(String(moistureValue), EPD_BLACK, 4, 0, 95);
 
-  drawText("Pump", EPD_BLACK, 2, 130, 25);
+  drawText("Pump", EPD_BLACK, 2, 130, 80);
   if (pumpIsRunning) {
-    drawText("ON", EPD_BLACK, 4, 130, 45);
+    drawText("ON", EPD_BLACK, 4, 130, 95);
   } else {
-    drawText("OFF", EPD_BLACK, 4, 130, 45);
+    drawText("OFF", EPD_BLACK, 4, 130, 95);
   }
 
-  drawText("Temp \tC", EPD_BLACK, 2, 0, 80);
-  drawText(String(tempsensor.readTempC()), EPD_BLACK, 4, 0, 95);
+  drawText("Temp \tC", EPD_BLACK, 2, 130, 25);
+  drawText(String(tempsensor.readTempC()), EPD_BLACK, 4, 130, 45);
 
   logEvent("Updating the EPD");
   display.display();
