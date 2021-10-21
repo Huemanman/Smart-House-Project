@@ -141,7 +141,7 @@ void loop() {
 
 void updateEPD() {
   // Config
-  drawText(WiFi.localIP().toString(), EPD_BLACK, 2, 140, 0);
+  drawText(WiFi.localIP().toString(), EPD_BLACK, 2, 100, 0);
   drawText(getTimeAsString(), EPD_BLACK, 2, 0, 25);
   drawText(getDateAsString(), EPD_BLACK, 2, 0, 45);
   drawText("Warlpiri", EPD_BLACK, 2, 0, 0);
@@ -151,6 +151,7 @@ void updateEPD() {
   display.drawLine(0, 20, 250, 20, EPD_BLACK);
   display.drawLine(125, 20, 125, 122, EPD_BLACK);
   display.drawLine(0, 75, 250, 75, EPD_BLACK);
+  display.drawLine(95, 0, 95, 20, EPD_BLACK);
 
   drawText("Moisture", EPD_BLACK, 2, 0, 80);
   drawText(String(moistureValue), EPD_BLACK, 4, 0, 95);
