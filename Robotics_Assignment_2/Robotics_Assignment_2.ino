@@ -33,7 +33,7 @@ ThinkInk_213_Mono_B72 display(EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 // Motor Shield
 #include <Adafruit_MotorShield.h>
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
-Adafruit_DCMotor *myMotor = AFMS.getMotor(4);
+Adafruit_DCMotor *myMotor = AFMS.getMotor(1);
 boolean pumpIsRunning = false;
 
 // Soil Moisture
@@ -53,6 +53,7 @@ void setup() {
   }
   delay(1000);
 
+  pinMode(LED_BUILTIN, OUTPUT);
 
   if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)) {
     // Follow instructions in README and install
@@ -90,10 +91,14 @@ void setup() {
   //Led Manipulation
   server.on("/LEDOn", HTTP_GET, [](AsyncWebServerRequest * request) {
     digitalWrite(LED_BUILTIN, HIGH);
+    if (!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/dashboard.html", "text/html", false, processor);
   });
-server.on("/LEDOff", HTTP_GET, [](AsyncWebServerRequest * request) {
+  server.on("/LEDOff", HTTP_GET, [](AsyncWebServerRequest * request) {
     digitalWrite(LED_BUILTIN, LOW);
+    if (!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/dashboard.html", "text/html", false, processor);
   });
 
@@ -108,7 +113,7 @@ server.on("/LEDOff", HTTP_GET, [](AsyncWebServerRequest * request) {
 
   // RTC
   if (! rtc.begin()) {
-  Serial.println("Couldn't find RTC");
+    Serial.println("Couldn't find RTC");
     Serial.flush();
     //    abort();
   }
@@ -142,8 +147,8 @@ void loop() {
 void updateEPD() {
   // Config
   drawText(WiFi.localIP().toString(), EPD_BLACK, 2, 100, 0);
-  drawText(getTimeAsString(), EPD_BLACK, 2, 0, 25);
-  drawText(getDateAsString(), EPD_BLACK, 2, 0, 45);
+  drawText(getTimeAsString(), EPD_BLACK, 2, 0, 30);
+  drawText(getDateAsString(), EPD_BLACK, 2, 0, 50);
   drawText("Warlpiri", EPD_BLACK, 2, 0, 0);
 
 
@@ -153,10 +158,10 @@ void updateEPD() {
   display.drawLine(0, 75, 250, 75, EPD_BLACK);
   display.drawLine(95, 0, 95, 20, EPD_BLACK);
 
-  drawText("Moisture", EPD_BLACK, 2, 0, 80);
+  drawText("Moisture", EPD_BLACK, 2, 0, 78);
   drawText(String(moistureValue), EPD_BLACK, 4, 0, 95);
 
-  drawText("Pump", EPD_BLACK, 2, 130, 80);
+  drawText("Pump", EPD_BLACK, 2, 130, 78);
   if (pumpIsRunning) {
     drawText("ON", EPD_BLACK, 4, 130, 95);
   } else {
